@@ -73,13 +73,18 @@ def create_pivot_from_table(
         pivot_table = pivot_cache.CreatePivotTable(dest, pivot_table_name)
 
         # --- Configure fields for your table ---
-        # Rows: Category
+        # Rows: Customer (outer) -> Category (inner)
         # Values: Count of orders (rows) + Sum of Qty + Sum of Total (amount spent)
 
-        # Row field
+        # Row field: Customer at the top level.
+        pf_customer = pivot_table.PivotFields("Customer")
+        pf_customer.Orientation = XL_ROW_FIELD
+        pf_customer.Position = 1
+
+        # Row field: Category nested under Customer.
         pf_category = pivot_table.PivotFields("Category")
         pf_category.Orientation = XL_ROW_FIELD
-        pf_category.Position = 1
+        pf_category.Position = 2
 
         # Values: Count of orders (count any non-empty field; Name works well)
         pf_count = pivot_table.PivotFields("Name")
