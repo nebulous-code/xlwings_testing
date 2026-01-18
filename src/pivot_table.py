@@ -56,8 +56,9 @@ def create_pivot_from_table(
         # --- Ensure pivot sheet exists (create or clear) ---
         try:
             pivot_sheet = wb.sheets[pivot_sheet_name]
-        except KeyError:
+        except Exception:
             pivot_sheet = wb.sheets.add(pivot_sheet_name, after=wb.sheets[-1])
+            
 
         # Optional: clear existing content
         pivot_sheet.clear()
@@ -69,43 +70,32 @@ def create_pivot_from_table(
         dest = pivot_sheet.range(pivot_top_left_cell).api  # COM Range
         pivot_table = pivot_cache.CreatePivotTable(dest, pivot_table_name)
 
-        # --- Configure fields (EDIT THESE NAMES to match your Table column headers) ---
-        # Example layout:
-        # Rows: Inspector, Contractor
-        # Columns: Bucket
-        # Values: Sum of Crew Size
+        # --- Configure fields for your table ---
+        # Rows: Category
+        # Values: Count of Name (orders) + Sum of Total (category total)
 
-        row_fields = ["Inspector", "Contractor"]
-        col_fields = ["Bucket"]
-        value_field = ("Crew Size", XL_SUM)  # (field_name, summary_function)
+        # Row field
+        pf_category = pivot_table.PivotFields("Category")
+        pf_category.Orientation = XL_ROW_FIELD
+        pf_category.Position = 1
 
-        # Add row fields
-        for i, f in enumerate(row_fields, start=1):
-            pf = pivot_table.PivotFields(f)
-            pf.Orientation = XL_ROW_FIELD
-            pf.Position = i
+        # Values: Count of orders (count Name)
+        pf_count = pivot_table.PivotFields("Name")
+        pf_count.Orientation = XL_DATA_FIELD
+        pf_count.Function = XL_COUNT
 
-        # Add column fields
-        for i, f in enumerate(col_fields, start=1):
-            pf = pivot_table.PivotFields(f)
-            pf.Orientation = XL_COLUMN_FIELD
-            pf.Position = i
-
-        # Add values field
-        val_name, val_func = value_field
-        pfv = pivot_table.PivotFields(val_name)
-        pfv.Orientation = XL_DATA_FIELD
-        pfv.Function = val_func  # XL_SUM / XL_COUNT / etc.
+        # Values: Sum of Total
+        pf_sum = pivot_table.PivotFields("Total")
+        pf_sum.Orientation = XL_DATA_FIELD
+        pf_sum.Function = XL_SUM
 
         # Optional: nicer formatting
         pivot_table.ShowTableStyleRowStripes = True
         pivot_table.TableStyle2 = "PivotStyleMedium9"
 
-        # Save
         wb.save()
 
     finally:
-        # Clean shutdown
         try:
             wb.close()
         except Exception:
