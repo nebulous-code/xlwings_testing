@@ -3,7 +3,7 @@ Create a PivotTable from an existing Excel Table (ListObject) using xlwings (Win
 
 Assumptions:
 - The source data is an Excel Table (Insert -> Table) with a known name, e.g. "All_Rows"
-- You want a pivot on a new (or existing) sheet
+- You want a pivot on a new sheet or don't mind clearing the provied sheet
 - Windows Excel (COM) is available
 """
 
@@ -35,6 +35,7 @@ def create_pivot_from_table(
         wb = app.books.open(workbook_path)
 
         # --- Find the ListObject (Excel Table) by name across all sheets ---
+        # This lets you reuse the function even if the table moves to a different worksheet.
         list_object = None
         source_sheet = None
         for sht in wb.sheets:
@@ -64,27 +65,33 @@ def create_pivot_from_table(
         pivot_sheet.clear()
 
         # --- Build pivot cache + pivot table ---
-        # SourceType=1 => xlDatabase
+        # SourceType=1 => xlDatabase (standard table range)
         pivot_cache = wb.api.PivotCaches().Create(1, source_range)  # type: ignore[attr-defined]
 
+        # Place the PivotTable at the requested top-left cell on the pivot sheet.
         dest = pivot_sheet.range(pivot_top_left_cell).api  # COM Range
         pivot_table = pivot_cache.CreatePivotTable(dest, pivot_table_name)
 
         # --- Configure fields for your table ---
         # Rows: Category
-        # Values: Count of Name (orders) + Sum of Total (category total)
+        # Values: Count of orders (rows) + Sum of Qty + Sum of Total (amount spent)
 
         # Row field
         pf_category = pivot_table.PivotFields("Category")
         pf_category.Orientation = XL_ROW_FIELD
         pf_category.Position = 1
 
-        # Values: Count of orders (count Name)
+        # Values: Count of orders (count any non-empty field; Name works well)
         pf_count = pivot_table.PivotFields("Name")
         pf_count.Orientation = XL_DATA_FIELD
         pf_count.Function = XL_COUNT
 
-        # Values: Sum of Total
+        # Values: Sum of Qty
+        pf_qty_sum = pivot_table.PivotFields("Qty")
+        pf_qty_sum.Orientation = XL_DATA_FIELD
+        pf_qty_sum.Function = XL_SUM
+
+        # Values: Sum of Total (amount spent)
         pf_sum = pivot_table.PivotFields("Total")
         pf_sum.Orientation = XL_DATA_FIELD
         pf_sum.Function = XL_SUM
