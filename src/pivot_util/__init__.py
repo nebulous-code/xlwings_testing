@@ -3,18 +3,18 @@ Pivot utility package exports.
 """
 
 from .constants import DestinationHandling, SummaryFunction
-from .errors import DestinationError, PivotSpecError, ValidationError
-from .field_specs import ColumnFieldSpec, DataFieldSpec, RowFieldSpec
-from .pivot_spec import PivotSpec
+from .errors import DestinationError, PivotBuilderError, ValidationError
+from .fields import ColumnField, DataField, RowField
+from .pivot_builder import PivotBuilder
 
 __all__ = [
     "DestinationHandling",
     "SummaryFunction",
     "DestinationError",
-    "PivotSpecError",
+    "PivotBuilderError",
     "ValidationError",
-    "ColumnFieldSpec",
-    "DataFieldSpec",
-    "RowFieldSpec",
-    "PivotSpec",
+    "ColumnField",
+    "DataField",
+    "RowField",
+    "PivotBuilder",
 ]

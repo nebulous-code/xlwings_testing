@@ -1,5 +1,5 @@
 """
-Field specification objects for building pivot tables.
+Field definition objects for building pivot tables.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from .constants import SummaryFunction
 
 
 @dataclass(frozen=True)
-class RowFieldSpec:
+class RowField:
     """
     Row field definition for a pivot table.
 
@@ -25,7 +25,7 @@ class RowFieldSpec:
 
 
 @dataclass(frozen=True)
-class ColumnFieldSpec:
+class ColumnField:
     """
     Column field definition for a pivot table.
 
@@ -39,7 +39,7 @@ class ColumnFieldSpec:
 
 
 @dataclass(frozen=True)
-class DataFieldSpec:
+class DataField:
     """
     Data field definition for a pivot table.
 

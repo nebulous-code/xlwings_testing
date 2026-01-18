@@ -1,5 +1,5 @@
 """
-Core pivot creation logic that reads a PivotSpec and builds the pivot table.
+Core pivot creation logic that reads a PivotBuilder and builds the pivot table.
 """
 
 from __future__ import annotations
@@ -20,23 +20,23 @@ from .constants import (
     XL_AVG,
 )
 from .errors import DestinationError, ValidationError
-from .field_specs import ColumnFieldSpec, DataFieldSpec, RowFieldSpec
+from .fields import ColumnField, DataField, RowField
 if TYPE_CHECKING:
-    from .pivot_spec import PivotSpec
+    from .pivot_builder import PivotBuilder
 
 
-def generate_pivot(spec: PivotSpec) -> None:
+def generate_pivot(spec: "PivotBuilder") -> None:
     """
-    Validate and generate a pivot table based on the provided spec.
+    Validate and generate a pivot table based on the provided builder.
 
     Args:
-        spec: PivotSpec with field definitions and destination preferences.
+        spec: PivotBuilder with field definitions and destination preferences.
 
     Returns:
         None
 
     Raises:
-        ValidationError: When the spec fails validation checks.
+        ValidationError: When the builder fails validation checks.
         DestinationError: When destination handling fails.
     """
 
@@ -86,7 +86,7 @@ def generate_pivot(spec: PivotSpec) -> None:
     pivot_table.ShowTableStyleRowStripes = bool(spec.show_row_stripes)
 
 
-def _validate_and_get_table(spec: PivotSpec):
+def _validate_and_get_table(spec: "PivotBuilder"):
     _validate_spec_inputs(spec)
     list_object = _find_list_object(spec.workbook, spec.table_name)
     if list_object is None:
@@ -100,7 +100,7 @@ def _validate_and_get_table(spec: PivotSpec):
     return list_object
 
 
-def _validate_spec_inputs(spec: PivotSpec) -> None:
+def _validate_spec_inputs(spec: "PivotBuilder") -> None:
     if len(spec.row_fields) > spec.max_row_fields:
         raise ValidationError(
             f"Row field depth {len(spec.row_fields)} exceeds max of {spec.max_row_fields}."
@@ -115,6 +115,10 @@ def _validate_spec_inputs(spec: PivotSpec) -> None:
         raise ValidationError(
             f"Data fields count {len(spec.data_fields)} exceeds max of {spec.max_data_fields}."
         )
+    if spec.destination_handling is None:
+        raise ValidationError("destination_handling is required.")
+    if not isinstance(spec.destination_handling, DestinationHandling):
+        raise ValidationError("destination_handling must be a DestinationHandling value.")
     for data_field in spec.data_fields:
         if not isinstance(data_field.function, SummaryFunction):
             raise ValidationError(
@@ -122,7 +126,7 @@ def _validate_spec_inputs(spec: PivotSpec) -> None:
             )
 
 
-def _resolve_destination_sheet(spec: PivotSpec) -> xw.Sheet:
+def _resolve_destination_sheet(spec: "PivotBuilder") -> xw.Sheet:
     handling = spec.destination_handling
 
     try:
@@ -137,7 +141,7 @@ def _resolve_destination_sheet(spec: PivotSpec) -> xw.Sheet:
             return existing_sheet
         if handling == DestinationHandling.EXISTING_FORCE_CLEAR:
             return existing_sheet
-        if handling in (DestinationHandling.EXISTING_CLEAR, None):
+        if handling in (DestinationHandling.EXISTING_CLEAR, DestinationHandling.FIND_OR_CREATE):
             if _is_sheet_empty(existing_sheet):
                 return existing_sheet
             raise DestinationError(
@@ -151,7 +155,7 @@ def _resolve_destination_sheet(spec: PivotSpec) -> xw.Sheet:
         ):
             raise DestinationError(f"Sheet '{spec.pivot_sheet_name}' was not found.")
 
-    # handling is None or NEW and the sheet does not exist.
+    # FIND_OR_CREATE or NEW and the sheet does not exist.
     return spec.workbook.sheets.add(spec.pivot_sheet_name, after=spec.workbook.sheets[-1])
 
 
@@ -179,9 +183,9 @@ def _validate_unique_column_names(column_names: Iterable[str]) -> None:
 
 
 def _validate_field_names_exist(
-    row_fields: Iterable[RowFieldSpec],
-    column_fields: Iterable[ColumnFieldSpec],
-    data_fields: Iterable[DataFieldSpec],
+    row_fields: Iterable[RowField],
+    column_fields: Iterable[ColumnField],
+    data_fields: Iterable[DataField],
     column_names: Iterable[str],
 ) -> None:
     existing = {name.strip().lower() for name in column_names}

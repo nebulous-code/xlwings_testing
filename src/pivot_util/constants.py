@@ -27,6 +27,7 @@ class DestinationHandling(Enum):
     Defines how the destination sheet should be found or created.
     """
 
+    FIND_OR_CREATE = "find_or_create"
     EXISTING_CLEAR = "existing_clear"
     EXISTING_FORCE_CLEAR = "existing_force_clear"
     EXISTING_NO_CLEAR = "existing_no_clear"
